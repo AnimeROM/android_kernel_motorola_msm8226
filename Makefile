@@ -382,7 +382,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -mfpu=neon-vfpv4 -mfloat-abi=softfp \
 		   -mvectorize-with-neon-quad \
 		   -fno-delete-null-pointer-checks \
-		   -march=armv7-a -mtune=cortex-a7 \
+		   -mtune=cortex-a7 \
 	           -ffast-math -fsingle-precision-constant \
                    -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr
 KBUILD_AFLAGS_KERNEL :=
