@@ -4415,10 +4415,11 @@ static void tcp_sack_remove(struct tcp_sock *tp)
 		return;
 	}
 
+	BUG_ON(num_sacks > 4); 
 	for (this_sack = 0; this_sack < num_sacks;) {
 		/* Check if the start of the sack is covered by RCV.NXT. */
 		if (!before(tp->rcv_nxt, sp->start_seq)) {
-			int i;
+			int i = 0;
 
 			/* RCV.NXT must cover all the block! */
 			WARN_ON(before(tp->rcv_nxt, sp->end_seq));
@@ -5089,7 +5090,8 @@ static void __tcp_ack_snd_check(struct sock *sk, int ofo_possible)
 	struct tcp_sock *tp = tcp_sk(sk);
 
 	    /* More than one full frame received... */
-	if (((tp->rcv_nxt - tp->rcv_wup) > inet_csk(sk)->icsk_ack.rcv_mss &&
+	if (((tp->rcv_nxt - tp->rcv_wup) > (inet_csk(sk)->icsk_ack.rcv_mss) *
+					sysctl_tcp_delack_seg &&
 	     /* ... and right edge of window advances far enough.
 	      * (tcp_recvmsg() will send ACK otherwise). Or...
 	      */

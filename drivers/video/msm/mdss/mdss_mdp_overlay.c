@@ -154,6 +154,9 @@ int mdss_mdp_overlay_req_check(struct msm_fb_data_type *mfd,
 			pr_err("Invalid decimation factors horz=%d vert=%d\n",
 					req->horz_deci, req->vert_deci);
 			return -EINVAL;
+		} else if (req->flags & MDP_BWC_EN) {
+			pr_err("Decimation can't be enabled with BWC\n");
+			return -EINVAL;
 		}
 	}
 
@@ -271,7 +274,9 @@ static int __mdp_pipe_tune_perf(struct mdss_mdp_pipe *pipe)
 		 * requirement by applying vertical decimation and reduce
 		 * mdp clock requirement
 		 */
-		if (mdata->has_decimation && (pipe->vert_deci < MAX_DECIMATION))
+		if (mdata->has_decimation && (pipe->vert_deci < MAX_DECIMATION)
+			&& !pipe->bwc_mode && !pipe->src_fmt->tile &&
+			!pipe->scale.enable_pxl_ext)
 			pipe->vert_deci++;
 		else
 			return -EPERM;
@@ -313,10 +318,6 @@ static int __mdss_mdp_overlay_setup_scaling(struct mdss_mdp_pipe *pipe)
 				rc, src, pipe->dst.h);
 		return rc;
 	}
-	pipe->scale.init_phase_x[0] = (pipe->scale.phase_step_x[0] -
-					(1 << PHASE_STEP_SHIFT)) / 2;
-	pipe->scale.init_phase_y[0] = (pipe->scale.phase_step_y[0] -
-					(1 << PHASE_STEP_SHIFT)) / 2;
 	return rc;
 }
 
@@ -407,17 +408,33 @@ static int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
 	}
 
 	if (req->id == MSMFB_NEW_REQUEST) {
-		if (req->flags & MDP_OV_PIPE_FORCE_DMA)
-			pipe_type = MDSS_MDP_PIPE_TYPE_DMA;
-		else if (fmt->is_yuv || (req->flags & MDP_OV_PIPE_SHARE))
-			pipe_type = MDSS_MDP_PIPE_TYPE_VIG;
-		else
-			pipe_type = MDSS_MDP_PIPE_TYPE_RGB;
+		switch (req->pipe_type) {
+                case PIPE_TYPE_VIG:
+                        pipe_type = MDSS_MDP_PIPE_TYPE_VIG;
+                        break;
+                case PIPE_TYPE_RGB:
+                        pipe_type = MDSS_MDP_PIPE_TYPE_RGB;
+                        break;
+                case PIPE_TYPE_DMA:
+                        pipe_type = MDSS_MDP_PIPE_TYPE_DMA;
+                        break;
+                case PIPE_TYPE_AUTO:
+                default:
+                        if (req->flags & MDP_OV_PIPE_FORCE_DMA)
+                                pipe_type = MDSS_MDP_PIPE_TYPE_DMA;
+                        else if (fmt->is_yuv ||
+                                (req->flags & MDP_OV_PIPE_SHARE))
+                                pipe_type = MDSS_MDP_PIPE_TYPE_VIG;
+                        else
+                                pipe_type = MDSS_MDP_PIPE_TYPE_RGB;
+                        break;
+                }
 
 		pipe = mdss_mdp_pipe_alloc(mixer, pipe_type);
 
 		/* VIG pipes can also support RGB format */
-		if (!pipe && pipe_type == MDSS_MDP_PIPE_TYPE_RGB) {
+		if ((req->pipe_type == PIPE_TYPE_AUTO) && !pipe &&
+			(pipe_type == MDSS_MDP_PIPE_TYPE_RGB)) {
 			pipe_type = MDSS_MDP_PIPE_TYPE_VIG;
 			pipe = mdss_mdp_pipe_alloc(mixer, pipe_type);
 		}
@@ -571,14 +588,21 @@ static int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
 		}
 	}
 
-	if ((pipe->flags & MDP_DEINTERLACE) && !pipe->scale.enable_pxl_ext) {
+	/*
+	 * When scaling is enabled src crop and image
+	 * width and height is modified by user
+	 */
+	if ((pipe->flags & MDP_DEINTERLACE)) {
 		if (pipe->flags & MDP_SOURCE_ROTATED_90) {
 			pipe->src.x = DIV_ROUND_UP(pipe->src.x, 2);
 			pipe->src.x &= ~1;
-			pipe->src.w /= 2;
-			pipe->img_width /= 2;
+			if (!pipe->scale.enable_pxl_ext) {
+				pipe->src.w /= 2;
+				pipe->img_width /= 2;
+			}
 		} else {
-			pipe->src.h /= 2;
+			if (!pipe->scale.enable_pxl_ext)
+				pipe->src.h /= 2;
 			pipe->src.y = DIV_ROUND_UP(pipe->src.y, 2);
 			pipe->src.y &= ~1;
 		}
@@ -681,6 +705,7 @@ int mdss_mdp_overlay_get_buf(struct msm_fb_data_type *mfd,
 	if ((num_planes <= 0) || (num_planes > MAX_PLANES))
 		return -EINVAL;
 
+	mdss_bus_bandwidth_ctrl(1);
 	memset(data, 0, sizeof(*data));
 	for (i = 0; i < num_planes; i++) {
 		data->p[i].flags = flags;
@@ -694,6 +719,7 @@ int mdss_mdp_overlay_get_buf(struct msm_fb_data_type *mfd,
 			break;
 		}
 	}
+	mdss_bus_bandwidth_ctrl(0);
 
 	data->num_planes = i;
 
@@ -703,8 +729,11 @@ int mdss_mdp_overlay_get_buf(struct msm_fb_data_type *mfd,
 int mdss_mdp_overlay_free_buf(struct mdss_mdp_data *data)
 {
 	int i;
+
+	mdss_bus_bandwidth_ctrl(1);
 	for (i = 0; i < data->num_planes && data->p[i].len; i++)
 		mdss_mdp_put_img(&data->p[i]);
+	mdss_bus_bandwidth_ctrl(0);
 
 	data->num_planes = 0;
 
@@ -849,8 +878,16 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	int ret = 0;
 	int sd_in_pipe = 0;
 
-	if (ctl->shared_lock)
+	if (!ctl) {
+		pr_warn("kickoff on fb=%d without a ctl attched\n", mfd->index);
+		return ret;
+	}
+
+	if (ctl->shared_lock){
+		mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_BEGIN);
+		mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_READY);
 		mutex_lock(ctl->shared_lock);
+	}
 
 	mutex_lock(&mdp5_data->ov_lock);
 	mutex_lock(&mfd->lock);
@@ -874,7 +911,9 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 			mdp5_data->sd_enabled = 0;
 	}
 
-	mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_BEGIN);
+	if (!ctl->shared_lock)
+		mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_BEGIN);
+
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
 
 	if (data)
@@ -1592,7 +1631,7 @@ static ssize_t mdss_mdp_vsync_show_event(struct device *dev,
 	vsync_ticks = ktime_to_ns(mdp5_data->vsync_time);
 
 	pr_debug("fb%d vsync=%llu", mfd->index, vsync_ticks);
-	ret = scnprintf(buf, PAGE_SIZE, "VSYNC=%llu", vsync_ticks);
+	ret = scnprintf(buf, PAGE_SIZE, "VSYNC=%llu\n", vsync_ticks);
 
 	return ret;
 }
@@ -2044,6 +2083,10 @@ static int mdss_fb_get_hw_caps(struct msm_fb_data_type *mfd,
 		caps->features |= MDP_BWC_EN;
 	if (mdata->has_decimation)
 		caps->features |= MDP_DECIMATION_EN;
+
+	caps->max_smp_cnt = mdss_res->smp_mb_cnt;
+	caps->smp_per_pipe = mdata->smp_mb_per_pipe;
+
 	return 0;
 }
 
@@ -2368,11 +2411,13 @@ static int mdss_mdp_overlay_on(struct msm_fb_data_type *mfd)
 	mdss_mdp_video_lock_panel(mdp5_data->ctl);
 
 	if (!mfd->panel_info->cont_splash_enabled &&
-		(mfd->panel_info->type != DTV_PANEL) &&
-		(mfd->panel_info->type != WRITEBACK_PANEL)) {
+		(mfd->panel_info->type != DTV_PANEL)) {
 		rc = mdss_mdp_overlay_start(mfd);
-		if (!IS_ERR_VALUE(rc))
+		if (!IS_ERR_VALUE(rc) &&
+			(mfd->panel_info->type != WRITEBACK_PANEL)) {
+			atomic_inc(&mfd->mdp_sync_pt_data.commit_cnt);
 			rc = mdss_mdp_overlay_kickoff(mfd, NULL);
+		}
 	} else {
 		rc = mdss_mdp_ctl_setup(mdp5_data->ctl);
 		if (rc) {
@@ -2462,14 +2507,9 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 
 int mdss_panel_register_done(struct mdss_panel_data *pdata)
 {
-	/*
-	 * Clocks are already on if continuous splash is enabled,
-	 * increasing ref_cnt to help balance clocks once done.
-	 */
-	if (pdata->panel_info.cont_splash_enabled) {
+	if (pdata->panel_info.cont_splash_enabled)
 		mdss_mdp_footswitch_ctrl_splash(1);
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
-	}
+
 	return 0;
 }
 

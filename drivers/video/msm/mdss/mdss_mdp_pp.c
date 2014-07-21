@@ -809,39 +809,51 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 		}
 	}
 
-	if (pipe->scale.enable_pxl_ext &&
-		pipe->type == MDSS_MDP_PIPE_TYPE_VIG) {
+	if (pipe->scale.enable_pxl_ext) {
+		if (pipe->type == MDSS_MDP_PIPE_TYPE_VIG) {
+			/*program x,y initial phase and phase step*/
+			writel_relaxed(pipe->scale.init_phase_x[0],
+				pipe->base +
+				MDSS_MDP_REG_VIG_QSEED2_C03_INIT_PHASEX);
+			writel_relaxed(pipe->scale.phase_step_x[0],
+				pipe->base +
+				MDSS_MDP_REG_VIG_QSEED2_C03_PHASESTEPX);
+			writel_relaxed(pipe->scale.init_phase_x[1],
+				pipe->base +
+				MDSS_MDP_REG_VIG_QSEED2_C12_INIT_PHASEX);
+			writel_relaxed(pipe->scale.phase_step_x[1],
+				pipe->base +
+				MDSS_MDP_REG_VIG_QSEED2_C12_PHASESTEPX);
 
-		/*program x,y initial phase and phase step*/
-		writel_relaxed(pipe->scale.init_phase_x[0],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C03_INIT_PHASEX);
-		writel_relaxed(pipe->scale.phase_step_x[0],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C03_PHASESTEPX);
-		writel_relaxed(pipe->scale.init_phase_x[1],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C12_INIT_PHASEX);
-		writel_relaxed(pipe->scale.phase_step_x[1],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C12_PHASESTEPX);
+			writel_relaxed(pipe->scale.init_phase_y[0],
+				pipe->base +
+				MDSS_MDP_REG_VIG_QSEED2_C03_INIT_PHASEY);
+			writel_relaxed(pipe->scale.phase_step_y[0],
+				pipe->base +
+				MDSS_MDP_REG_VIG_QSEED2_C03_PHASESTEPY);
+			writel_relaxed(pipe->scale.init_phase_y[1],
+				pipe->base +
+				MDSS_MDP_REG_VIG_QSEED2_C12_INIT_PHASEY);
+			writel_relaxed(pipe->scale.phase_step_y[1],
+				pipe->base +
+				MDSS_MDP_REG_VIG_QSEED2_C12_PHASESTEPY);
+		} else {
 
-		writel_relaxed(pipe->scale.init_phase_y[0],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C03_INIT_PHASEY);
-		writel_relaxed(pipe->scale.phase_step_y[0],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C03_PHASESTEPY);
-		writel_relaxed(pipe->scale.init_phase_y[1],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C12_INIT_PHASEY);
-		writel_relaxed(pipe->scale.phase_step_y[1],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C12_PHASESTEPY);
-
+			writel_relaxed(pipe->scale.phase_step_x[0],
+				pipe->base +
+				MDSS_MDP_REG_SCALE_PHASE_STEP_X);
+			writel_relaxed(pipe->scale.phase_step_y[0],
+				pipe->base +
+				MDSS_MDP_REG_SCALE_PHASE_STEP_Y);
+			writel_relaxed(pipe->scale.init_phase_x[0],
+				pipe->base +
+				MDSS_MDP_REG_SCALE_INIT_PHASE_X);
+			writel_relaxed(pipe->scale.init_phase_y[0],
+				pipe->base +
+				MDSS_MDP_REG_SCALE_INIT_PHASE_Y);
+		}
 		/*program pixel extn values for the SSPP*/
 		mdss_mdp_pipe_program_pixel_extn(pipe);
-	} else if (pipe->type == MDSS_MDP_PIPE_TYPE_VIG) {
-		writel_relaxed(phasex_step, pipe->base +
-		   MDSS_MDP_REG_SCALE_PHASE_STEP_X);
-		writel_relaxed(phasey_step, pipe->base +
-		   MDSS_MDP_REG_SCALE_PHASE_STEP_Y);
-		writel_relaxed(init_phasex, pipe->base +
-			MDSS_MDP_REG_SCALE_INIT_PHASE_X);
-		writel_relaxed(init_phasey, pipe->base +
-			MDSS_MDP_REG_SCALE_INIT_PHASE_Y);
 	} else {
 		writel_relaxed(phasex_step, pipe->base +
 		   MDSS_MDP_REG_SCALE_PHASE_STEP_X);
@@ -1521,6 +1533,8 @@ int mdss_mdp_pp_init(struct device *dev)
 					&mdss_pp_res->dspp_hist[i].hist_mutex);
 				spin_lock_init(
 					&mdss_pp_res->dspp_hist[i].hist_lock);
+				init_completion(
+					&mdss_pp_res->dspp_hist[i].comp);
 			}
 		}
 	}
@@ -1529,6 +1543,7 @@ int mdss_mdp_pp_init(struct device *dev)
 		for (i = 0; i < mdata->nvig_pipes; i++) {
 			mutex_init(&vig[i].pp_res.hist.hist_mutex);
 			spin_lock_init(&vig[i].pp_res.hist.hist_lock);
+			init_completion(&vig[i].pp_res.hist.comp);
 		}
 		if (!mdata->pp_bus_hdl) {
 			pp_bus_pdata = &mdp_pp_bus_scale_table;
@@ -2086,6 +2101,12 @@ int mdss_mdp_argc_config(struct mdp_pgc_lut_data *config,
 	mutex_lock(&mdss_pp_mutex);
 
 	disp_num = PP_BLOCK(config->block) - MDP_LOGICAL_BLOCK_DISP_0;
+	ret = pp_get_dspp_num(disp_num, &dspp_num);
+	if (ret) {
+		pr_err("%s, no dspp connects to disp %d", __func__, disp_num);
+		goto argc_config_exit;
+	}
+
 	switch (PP_LOCAT(config->block)) {
 	case MDSS_PP_LM_CFG:
 		argc_offset = MDSS_MDP_REG_LM_OFFSET(dspp_num) +
@@ -2109,12 +2130,6 @@ int mdss_mdp_argc_config(struct mdp_pgc_lut_data *config,
 	tbl_size = GC_LUT_SEGMENTS * sizeof(struct mdp_ar_gc_lut_data);
 
 	if (config->flags & MDP_PP_OPS_READ) {
-		ret = pp_get_dspp_num(disp_num, &dspp_num);
-		if (ret) {
-			pr_err("%s, no dspp connects to disp %d",
-				__func__, disp_num);
-			goto argc_config_exit;
-		}
 		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
 		local_cfg = *config;
 		local_cfg.r_data =
@@ -2451,7 +2466,7 @@ static int pp_histogram_enable(struct pp_hist_col_info *hist_info,
 		goto exit;
 	}
 	hist_info->frame_cnt = req->frame_cnt;
-	init_completion(&hist_info->comp);
+	INIT_COMPLETION(hist_info->comp);
 	hist_info->hist_cnt_read = 0;
 	hist_info->hist_cnt_sent = 0;
 	hist_info->hist_cnt_time = 0;
