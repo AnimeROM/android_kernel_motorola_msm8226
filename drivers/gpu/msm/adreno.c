@@ -93,14 +93,19 @@ static struct devfreq_simple_ondemand_data adreno_ondemand_data = {
 
 static struct devfreq_msm_adreno_tz_data adreno_tz_data = {
 	.bus = {
-		.max = 533,
+		.max = 550,
 	},
+	.device_id = KGSL_DEVICE_3D0,
+};
+
+static struct devfreq_msm_adreno_tz_data adreno_conservative_data = {
 	.device_id = KGSL_DEVICE_3D0,
 };
 
 static const struct devfreq_governor_data adreno_governors[] = {
 	{ .name = "simple_ondemand", .data = &adreno_ondemand_data },
 	{ .name = "msm-adreno-tz", .data = &adreno_tz_data },
+	{ .name = "conservative", .data = &adreno_conservative_data },
 };
 
 static const struct kgsl_functable adreno_functable;
@@ -142,7 +147,7 @@ static struct adreno_device device_3d0 = {
 		.pm_dump_enable = 0,
 	},
 	.gmem_base = 0,
-	.gmem_size = SZ_256K,
+	.gmem_size = SZ_512K,
 	.pfp_fw = NULL,
 	.pm4_fw = NULL,
 	.wait_timeout = 0, /* in milliseconds, 0 means disabled */
@@ -271,16 +276,18 @@ static void adreno_input_work(struct work_struct *work)
 	struct adreno_device *adreno_dev = container_of(work,
 			struct adreno_device, input_work);
 	struct kgsl_device *device = &adreno_dev->dev;
+	
+	if (!_wake_timeout)
+		return;
 
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
 	device->flags |= KGSL_FLAG_WAKE_ON_TOUCH;
 
 	/*
-	 * Don't schedule adreno_start in a high priority workqueue, we are
-	 * already in a workqueue which should be sufficient
+	 * Schedule adreno_start in a high priority workqueue.
 	 */
-	kgsl_pwrctrl_wake(device, 0);
+	kgsl_pwrctrl_wake(device, 1);
 
 	/*
 	 * When waking up from a touch event we want to stay active long enough
