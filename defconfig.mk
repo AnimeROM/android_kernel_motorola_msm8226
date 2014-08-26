@@ -4,19 +4,18 @@ PRODUCT_SPECIFIC_DEFCONFIGS	:= $(DEFCONFIGSRC)/$(KERNEL_DEFCONFIG)
 TARGET_DEFCONFIG		:= $(KERNEL_OUT)/mapphone_defconfig
 KERNEL_DEBUG_DEFCONFIG          := $(LJAPDEFCONFIGSRC)/debug-$(subst _defconfig,,$(KERNEL_DEFCONFIG)).config
 
-ifneq ($(KERNEL_EXTRA_CONFIG),)
-PRODUCT_SPECIFIC_DEFCONFIGS += $(LJAPDEFCONFIGSRC)/$(KERNEL_EXTRA_CONFIG).config
-endif
-
-# build eng kernel for eng and userdebug Android variants
+# add debug config file for non-user build
 ifneq ($(TARGET_BUILD_VARIANT), user)
+ifneq ($(TARGET_NO_KERNEL_DEBUG), true)
 ifneq ($(wildcard $(KERNEL_DEBUG_DEFCONFIG)),)
 PRODUCT_SPECIFIC_DEFCONFIGS += $(KERNEL_DEBUG_DEFCONFIG)
 endif
-
-ifneq ($(KERNEL_EXTRA_CONFIG),)
-PRODUCT_SPECIFIC_DEFCONFIGS += $(LJAPDEFCONFIGSRC)/debug-$(KERNEL_EXTRA_CONFIG).config
 endif
+endif
+
+# append all additional configs
+ifneq ($(KERNEL_EXTRA_CONFIG),)
+PRODUCT_SPECIFIC_DEFCONFIGS += $(KERNEL_EXTRA_CONFIG:%=$(LJAPDEFCONFIGSRC)/%.config)
 endif
 
 define do-make-defconfig
