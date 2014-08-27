@@ -173,33 +173,23 @@ catags_cpy:
 
 #ifdef KEXEC_HB_KERNEL_LOC
                /*
-                * Copy kernel from location up high in memory to location in 
-first 128MB.
-                * Bootloader on hammerhead erases first 128MB of ram on 
-reboot, 
-so it can't
-                * be in there before reboot, but decompressing in location 
-above 128MB takes
-                * a long time. This memcpy is much quicker, for some reason.
+                * Copy kernel from location up high in memory to location in  first 128MB.
+                * Bootloader on hammerhead erases first 128MB of ram on reboot, so it can't
+                * be in there before reboot, but decompressing in location above 128MB takes
+                * a long time. This memcpy is much quicker, for some reason. 
                 */
-               ldr     r2, [r3, #4]                            @ 
-kexec_start_address
-               ldr     r4, [r3, #20]                           @ 
-kexec_kernel_len
-               ldr     r6, =KEXEC_HB_KERNEL_LOC    @ target
-               mov     r5, #0                                          @ 
-iterator
+               ldr     r2, [r3, #4]                    @kexec_start_address
+               ldr     r4, [r3, #20]                   @kexec_kernel_len
+               ldr     r6, =KEXEC_HB_KERNEL_LOC        @ target
+               mov     r5, #0                          @iterator
 kernel_cpy:
-               ldr     r0, [r2, r5]                            @ from 
-kexec_start_address
-               str     r0, [r6, r5]                            @ to 
-KEXEC_HB_KERNEL_LOC
+               ldr     r0, [r2, r5]                    @ from kexec_start_address
+               str     r0, [r6, r5]                    @ to KEXEC_HB_KERNEL_LOC
                add     r5, r5, #4
                cmp     r5, r4
                blo     kernel_cpy
 #else
-               ldr     r6, [r3, #4]                            @ 
-kexec_start_address
+               ldr     r6, [r3, #4]                    @kexec_start_address
 #endif
 
                /* set registers and boot kexecd' kernel */
@@ -207,10 +197,8 @@ kexec_start_address
                str     r0, [r3]
 
                mov     r0, #0
-               ldr     r1, [r3, #8]                            @ 
-kexec_mach_type
-               mov     r2, r8                                          @ atags 
-pointer
+               ldr     r1, [r3, #8]                    @kexec_mach_type
+               mov     r2, r8                          @ atags pointer
                mov     pc, r6
 
                mov     r0, #4
