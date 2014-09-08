@@ -26,10 +26,25 @@
 #include <linux/msm_tsens.h>
 #include <linux/msm_thermal.h>
 #include <mach/cpufreq.h>
+#include <linux/platform_device.h>
+#include <linux/of.h>
+#include <linux/hrtimer.h>
 
 #define DEFAULT_POLLING_MS	500
 /* last 3 minutes based on 250ms polling cycle */
 #define MAX_HISTORY_SZ		((3*60*1000) / DEFAULT_POLLING_MS)
+
+//Defined here because some times not is recognized by the GCC TeamMEX hack
+#define MSM_CPUFREQ_NO_LIMIT 0xFFFFFFFF
+
+// Fix implicit declaration using Linaro 4.10 gcc TeamMEX hack
+//int msm_cpufreq_set_freq_limits(uint32_t cpu, uint32_t min, uint32_t max);
+
+int msm_cpufreq_set_freq_limits(uint32_t cpu, uint32_t min, uint32_t max)
+{
+  return 0;
+}
+//
 
 struct msm_thermal_stat_data {
 	int32_t temp_history[MAX_HISTORY_SZ];
@@ -603,5 +618,6 @@ late_initcall(msm_thermal_late_init);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Praveen Chidambaram <pchidamb@codeaurora.org>");
 MODULE_AUTHOR("Paul Reioux <reioux@gmail.com>");
+MODULE_AUTHOR("Carlos Jesús <xxx.reptar.rawrr.xxx@gmail.com>");
 MODULE_DESCRIPTION("intelligent thermal driver for Qualcomm based SOCs");
 MODULE_DESCRIPTION("originally from Qualcomm's open source repo");
