@@ -350,7 +350,7 @@ CFLAGS_MODULE = -DMODULE -fno-pic \
 		 -marm -mfpu=neon-vfpv4 \
 		 -mvectorize-with-neon-quad -fgcse-after-reload -fgcse-sm -fgcse-las \
 		 -ftree-loop-im -ftree-loop-ivcanon \
-		 -fivopts -ftree
+		 -fivopts
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
 CFLAGS_KERNEL 	=-mtune=cortex-a7 \
