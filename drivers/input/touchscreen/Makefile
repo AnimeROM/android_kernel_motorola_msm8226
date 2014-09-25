@@ -7,9 +7,11 @@
 wm97xx-ts-y := wm97xx-core.o
 
 # for sweep2wake, leave 1st to avoid merge issues at the end of the file
-obj-$(CONFIG_TOUCHSCREEN_SWEEP2WAKE)                += sweep2wake.o
+obj-$(CONFIG_TOUCHSCREEN_SWEEP2WAKE)            += sweep2wake.o
 # for doubletap2wake, leave 1st to avoid merge issues at the end of the file
 obj-$(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)        += doubletap2wake.o
+#Disable dt2w/s2w after time out
+obj-$(CONFIG_WAKE_TIMEOUT) 			+= wake_timeout.o
 
 obj-$(CONFIG_TOUCHSCREEN_SY3200)	+= sy3200.o
 obj-$(CONFIG_TOUCHSCREEN_SY3400)	+= sy3400.o
@@ -19,7 +21,7 @@ obj-$(CONFIG_TOUCHSCREEN_AD7879)	+= ad7879.o
 obj-$(CONFIG_TOUCHSCREEN_AD7879_I2C)	+= ad7879-i2c.o
 obj-$(CONFIG_TOUCHSCREEN_AD7879_SPI)	+= ad7879-spi.o
 obj-$(CONFIG_TOUCHSCREEN_ADS7846)	+= ads7846.o
-obj-$(CONFIG_TOUCHSCREEN_ATMEL_MAXTOUCH)	+= atmel_maxtouch.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_MAXTOUCH)+= atmel_maxtouch.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_MXT)	+= atmel_mxt_ts.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_MAXTOUCH_TS)	+= atmel_maxtouch_ts.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_TSADCC)	+= atmel_tsadcc.o
