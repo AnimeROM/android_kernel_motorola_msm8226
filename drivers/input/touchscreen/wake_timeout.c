@@ -38,7 +38,7 @@
 static struct input_dev * wake_pwrdev;
 static DEFINE_MUTEX(pwrkeyworklock);
 struct notifier_block wfnotif;
-static unsigned int wake_timeout = 0;
+static unsigned int wake_timeout = 60;
 static struct alarm wakefunc_rtc;
 static bool wakefunc_triggered = false;
 
