@@ -69,7 +69,6 @@
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
-bool prevent_sleep = false;
 void mdss_dsi_panel_lock_mutex(struct mdss_panel_data *pdata)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
