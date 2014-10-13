@@ -18,6 +18,7 @@ obj-$(CONFIG_CPU_FREQ_GOV_INTELLIACTIVE)+= cpufreq_intelliactive.o
 obj-$(CONFIG_CPU_FREQ_GOV_GAMING)       += cpufreq_gaming.o  
 obj-$(CONFIG_CPU_FREQ_GOV_XPERIENCE)	+= cpufreq_xperience.o
 obj-$(CONFIG_CPU_FREQ_GOV_ADAPTIVE) 	+= cpufreq_adaptive.o
+obj-$(CONFIG_CPU_FREQ_GOV_NIGHTMARE) 	+= cpufreq_nightmare.o
 
 
 # CPUfreq cross-arch helpers

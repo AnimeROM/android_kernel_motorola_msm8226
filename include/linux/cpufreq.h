@@ -387,6 +387,9 @@ extern struct cpufreq_governor cpufreq_gov_intelliactive;
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_XPERIENCE)
 extern struct cpufreq_governor cpufreq_gov_xperience;
 #define CPUFREQ_DEFAULT_GOVERNOR (&cpufreq_gov_xperience)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_NIGHTMARE)
+extern struct cpufreq_governor cpufreq_gov_nightmare;
+#define CPUFREQ_DEFAULT_GOVERNOR (&cpufreq_gov_nightmare)
 #endif
 
 
