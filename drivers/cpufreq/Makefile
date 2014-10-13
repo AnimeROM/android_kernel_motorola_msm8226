@@ -20,6 +20,7 @@ obj-$(CONFIG_CPU_FREQ_GOV_XPERIENCE)	+= cpufreq_xperience.o
 obj-$(CONFIG_CPU_FREQ_GOV_ADAPTIVE) 	+= cpufreq_adaptive.o
 obj-$(CONFIG_CPU_FREQ_GOV_NIGHTMARE) 	+= cpufreq_nightmare.o
 obj-$(CONFIG_CPU_FREQ_GOV_ABYSSPLUG) 	+= cpufreq_abyssplug.o
+obj-$(CONFIG_CPU_FREQ_GOV_ALESSA) 	+= cpufreq_alessa.o
 
 
 # CPUfreq cross-arch helpers

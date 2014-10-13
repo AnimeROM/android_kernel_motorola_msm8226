@@ -203,6 +203,11 @@ config CPU_FREQ_DEFAULT_GOV_XPERIENCE
 	help
 	Use the CPUFreq governor 'xperience' as default.
 
+config CPU_FREQ_DEFAULT_GOV_ALESSA
+	bool "alessa"
+	select CPU_FREQ_GOV_ALESSA
+	help
+
 config CPU_FREQ_GOV_ONDEMAND
 	tristate "'ondemand' cpufreq policy governor"
 	select CPU_FREQ_TABLE
@@ -311,6 +316,10 @@ config CPU_FREQ_GOV_ADAPTIVE
 
 config CPU_FREQ_GOV_NIGHTMARE
 	tristate "'nightmare' cpufreq policy governor"
+	depends on CPU_FREQ
+
+config CPU_FREQ_GOV_ALESSA
+	tristate "'alessa' cpufreq governor"
 	depends on CPU_FREQ
 
 config CPU_FREQ_GOV_ABYSSPLUG
