@@ -183,6 +183,16 @@ config CPU_FREQ_GOV_USERSPACE
 
 	  If in doubt, say Y.
 
+config CPU_FREQ_DEFAULT_GOV_ADAPTIVE
+	  bool "adaptive"
+	  select CPU_FREQ_GOV_ADAPTIVE
+ 	  ---help---
+ 	  Use the CPUFreq governor 'adaptive' as default. This allows
+ 	  you to get a full dynamic cpu frequency capable system by simply
+ 	  loading your cpufreq low-level hardware driver, using the
+ 	  'adaptive' governor for latency-sensitive workloads and demanding
+ 	  performance.
+
 config CPU_FREQ_DEFAULT_GOV_XPERIENCE
 	bool "xperience"
 	select CPU_FREQ_GOV_XPERIENCE
@@ -287,6 +297,13 @@ config CPU_FREQ_GOV_XPERIENCE
 	 depends on CPU_FREQ
 	 help
 	'XPerience' - a "powered and smart" governor
+
+config CPU_FREQ_GOV_ADAPTIVE
+	tristate "'adaptive' cpufreq policy governor"
+	---help---
+	'adaptive' - This driver adds a dynamic cpufreq policy governor
+	designed for latency-sensitive workloads and also for demanding
+	performance.
 
 menu "x86 CPU frequency scaling drivers"
 depends on X86
