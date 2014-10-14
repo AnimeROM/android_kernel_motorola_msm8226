@@ -76,6 +76,11 @@ struct ip_cpu_info {
 
 static DEFINE_PER_CPU(struct ip_cpu_info, ip_info);
 
+/*
+* suspend mode, if set = 1 hotplug will sleep,
+* if set = 0, then hoplug will be active all the time.
+*/
+static unsigned int hotplug_suspend = 0;
 //static unsigned int screen_off_max = UINT_MAX;
 static unsigned int screen_off_max = 998400;
 module_param(screen_off_max, uint, 0644);
@@ -323,6 +328,9 @@ static void __cpuinit intelli_plug_work_fn(struct work_struct *work)
 				pr_err("Run Stat Error: Bad value %u\n", nr_run_stat);
 				break;
 			}
+			
+ if (!hotplug_suspend)
+ return;
 		}
 #ifdef DEBUG_INTELLI_PLUG
 		else
@@ -426,6 +434,10 @@ static void __cpuinit intelli_plug_resume(struct early_suspend *handler)
 
 	queue_delayed_work_on(0, intelliplug_wq, &intelli_plug_work,
 		msecs_to_jiffies(10));
+
+if (!hotplug_suspend)
+return;
+  
 }
 #endif
 
