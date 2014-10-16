@@ -120,6 +120,7 @@ int cpufreq_frequency_table_target(struct cpufreq_policy *policy,
 		break;
 	case CPUFREQ_RELATION_C:
  		optimal.frequency = ~0;
+		break;
 	}
 
 	if (!cpu_online(policy->cpu))
