@@ -13,13 +13,13 @@
 * it under the terms of the GNU General Public License version 3 as
 * published by the Free Software Foundation. 
 *
-* Autor: Carlos "Klozz" Jesús <xxx.reptar.rawrr.xxx@gmail.com>
-* 	(C) 2014 Klozz Jesús (TeamMEX@XDA-Developers)
+* Author: Carlos "Klozz" Jesús <xxx.reptar.rawrr.xxx@gmail.com>
+* 	  (C) 2014 Klozz Jesús (TeamMEX@XDA-Developers)
 * 
-* This peace of art are dedicated to Stephanny Marlene...
+* This piece of art is dedicated to Stephanny Marlene...
 * 
 * v1.0
- */
+*/
 
 #include <asm/cputime.h>
 #include <linux/kernel.h>
