@@ -29,7 +29,6 @@
 #include <linux/init.h>
 #include <linux/err.h>
 #include <linux/input/doubletap2wake.h>
-#include <linux/input/sweep2wake.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <linux/input.h>
@@ -60,21 +59,11 @@ MODULE_LICENSE("GPLv2");
 
 /* Tuneables */
 #define DT2W_DEBUG		0
-#define DT2W_DEFAULT		0
+#define DT2W_DEFAULT		1
 
 #define DT2W_PWRKEY_DUR		20
 #define DT2W_FEATHER		200
 #define DT2W_TIME		600
-
-/* Wake Gestures */
-#define WAKE_GESTURE 		0x0b
-#define TRIGGER_TIMEOUT 	50
-
-extern struct vib_trigger *vib_trigger;
-static struct input_dev *gesture_dev;
-extern int gestures_switch;
-extern void set_vibrate(int value);
-extern int vib_strength;
 
 /* Resources */
 int dt2w_switch = DT2W_DEFAULT;
@@ -83,8 +72,7 @@ static cputime64_t tap_time_pre = 0;
 static int touch_x = 0, touch_y = 0, touch_nr = 0, x_pre = 0, y_pre = 0;
 static bool touch_x_called = false, touch_y_called = false, touch_cnt = true;
 static bool exec_count = true;
-static unsigned long pwrtrigger_time[2] = {0, 0};
-static struct notifier_block dt2w_lcd_notif;
+//static struct notifier_block dt2w_lcd_notif;
 static struct input_dev * doubletap2wake_pwrdev;
 static DEFINE_MUTEX(pwrkeyworklock);
 static struct workqueue_struct *dt2w_input_wq;
@@ -105,26 +93,6 @@ static int __init read_dt2w_cmdline(char *dt2w)
 	return 1;
 }
 __setup("dt2w=", read_dt2w_cmdline);
-
-/* Wake Gestures */
-void gestures_setdev(struct input_dev *input_device)
-{
- gesture_dev = input_device;
- return;
-}
-
-static void report_gesture(int gest)
-{
- pwrtrigger_time[1] = pwrtrigger_time[0];
- pwrtrigger_time[0] = jiffies;
-
- if (pwrtrigger_time[0] - pwrtrigger_time[1] < TRIGGER_TIMEOUT)
- return;
-
- printk("WG: gesture = %d\n", gest);
- input_report_rel(gesture_dev, WAKE_GESTURE, gest);
- input_sync(gesture_dev);
-}
 
 /* reset on finger release */
 static void doubletap2wake_reset(void) {
@@ -153,11 +121,6 @@ static DECLARE_WORK(doubletap2wake_presspwr_work, doubletap2wake_presspwr);
 
 /* PowerKey trigger */
 static void doubletap2wake_pwrtrigger(void) {
-	pwrtrigger_time[1] = pwrtrigger_time[0];
-	pwrtrigger_time[0] = jiffies;
-
- 	if (pwrtrigger_time[0] - pwrtrigger_time[1] < TRIGGER_TIMEOUT)
- 		return;
 	schedule_work(&doubletap2wake_presspwr_work);
         return;
 }
@@ -197,14 +160,9 @@ static void detect_doubletap2wake(int x, int y, bool st)
 		} else if (touch_nr == 1) {
 			if ((calc_feather(x, x_pre) < DT2W_FEATHER) &&
 			    (calc_feather(y, y_pre) < DT2W_FEATHER)) {
-				pr_info(LOGTAG"Double tap \n");
+				pr_info(LOGTAG"ON\n");
 				exec_count = false;
-				//set_vibrate(vib_strength);
-		if (gestures_switch) {
-			 report_gesture(5);
-	        } else {
-			 doubletap2wake_pwrtrigger();
-		}
+				doubletap2wake_pwrtrigger();
 				doubletap2wake_reset();
 			} else {
 				doubletap2wake_reset();
@@ -361,10 +319,6 @@ static ssize_t dt2w_doubletap2wake_dump(struct device *dev,
                 if (dt2w_switch != buf[0] - '0')
 		        dt2w_switch = buf[0] - '0';
 
-	if (dt2w_scr_suspended && !dt2w_switch && !s2w_switch) {
-			doubletap2wake_pwrtrigger();
-	}
-	  
 	return count;
 }
 
