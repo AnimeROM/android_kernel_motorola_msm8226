@@ -136,7 +136,7 @@ static int __init init_mmi_ram_info(void)
 		"Reserved"
 	};
 
-	smem_ddr_info = smem_alloc(SMEM_SDRAM_INFO, sizeof(*smem_ddr_info));
+	smem_ddr_info = smem_alloc(SMEM_SDRAM_INFO, sizeof(*smem_ddr_info),SMEM_PROC_COMM,SMEM_ITEM_CACHED_FLAG);
 
 	if (smem_ddr_info != NULL) {
 		char apanic_annotation[128];
