@@ -40,6 +40,17 @@ enum {
 
 #define SMEM_NUM_SMD_STREAM_CHANNELS        64
 
+/**
+ * OVERFLOW_ADD_UNSIGNED() - check for unsigned overflow
+ *
+ * @type: type to check for overflow
+ * @a: left value to use
+ * @b: right value to use
+ * @returns: true if a + b will result in overflow; false otherwise
+ */
+#define OVERFLOW_ADD_UNSIGNED(type, a, b) \
+	(((type)~0 - (a)) < (b) ? true : false)
+
 enum {
 	/* fixed items */
 	SMEM_PROC_COMM = 0,
@@ -90,13 +101,14 @@ enum {
 	SMEM_BATT_INFO,
 	SMEM_APPS_BOOT_MODE,
 	SMEM_VERSION_FIRST,
-	SMEM_SDRAM_INFO = SMEM_ID_VENDOR1,
 	SMEM_VERSION_SMD = SMEM_VERSION_FIRST,
 	SMEM_VERSION_LAST = SMEM_VERSION_FIRST + 24,
 	SMEM_OSS_RRCASN1_BUF1,
 	SMEM_OSS_RRCASN1_BUF2,
 	SMEM_ID_VENDOR0,
+	SMEM_KERNEL_RESERVE = SMEM_ID_VENDOR0,
 	SMEM_ID_VENDOR1,
+	SMEM_SDRAM_INFO = SMEM_ID_VENDOR1,
 	SMEM_ID_VENDOR2,
 	SMEM_HW_SW_BUILD_ID,
 	SMEM_SMD_BASE_ID_2,
