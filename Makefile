@@ -383,10 +383,9 @@ KBUILD_CPPFLAGS := -D__KERNEL__
 
 KBUILD_CFLAGS := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		 -fno-strict-aliasing -fno-common \
-		 -Werror-implicit-function-declaration \
 		 -Wno-format-security -Wno-uninitialized\
-		 -Wno-unused-variable -Wno-error\
-		 -Wno-sequence-point \
+		 -Wno-unused-variable -Wno-error \
+		 -Wno-sequence-point -Wno-implicit\
 		 -mfpu=neon-vfpv4 -fgcse-after-reload -fgcse-las \
 		 -mvectorize-with-neon-quad \
 		 -fno-delete-null-pointer-checks \
